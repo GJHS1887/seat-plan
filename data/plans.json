@@ -1,0 +1,19 @@
+{
+ "version": 1,
+ "settings": {
+  "schoolName": "সরকারি জুবিলী উচ্চ বিদ্যালয়, সুনামগঞ্জ",
+  "established": "১৮৮৭",
+  "classColors": {
+   "৩য়": "#bbf7d0",
+   "৪র্থ": "#fef08a",
+   "৫ম": "#fca5a5",
+   "৬ষ্ঠ": "#bfdbfe",
+   "৭ম": "#e9d5ff",
+   "৮ম": "#fed7aa",
+   "৯ম": "#fbcfe8",
+   "১০ম": "#cbd5e1"
+  },
+  "roomLibrary": []
+ },
+ "plans": []
+}

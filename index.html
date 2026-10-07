@@ -1,0 +1,451 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>পরীক্ষার আসনবিন্যাস</title>
+<meta name="description" content="শ্রেণি ও রোল নম্বর দিয়ে পরীক্ষার আসন খুঁজুন">
+<meta name="theme-color" content="#102a6b">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Noto+Serif+Bengali:wght@700&display=swap" rel="stylesheet">
+<link rel="preload" href="assets/fonts/Kalpurush.woff" as="font" type="font/woff" crossorigin>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="stylesheet" href="assets/style.css">
+</head>
+<body>
+
+<header class="site-header">
+  <div class="wrap narrow">
+    <div class="header-top">
+      <div class="brand">
+        <img class="school-logo" id="logo" src="assets/logo.jpg" alt="বিদ্যালয়ের লোগো" width="84" height="84">
+        <div>
+          <h1 class="school-title"><span id="schoolName">আসনবিন্যাস</span></h1>
+          <div class="school-subtitle" id="planTitle">লোড হচ্ছে…</div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <svg class="wave" viewBox="0 0 1440 46" preserveAspectRatio="none" aria-hidden="true">
+    <path d="M0 22 C 160 4 320 40 480 22 S 800 4 960 22 S 1280 40 1440 20 V46 H0 Z" fill="#3f63c2" opacity="0.45"/>
+    <path d="M0 30 C 200 14 360 44 560 30 S 920 14 1120 30 S 1360 42 1440 32 V46 H0 Z" fill="#f6f9fd"/>
+  </svg>
+</header>
+
+<main class="wrap narrow">
+  <section class="finder" id="finder" hidden>
+    <div class="exam-switch" id="examSwitch" role="group" aria-label="পরীক্ষা" hidden></div>
+    <h2>আপনার আসন কোথায়?</h2>
+    <p class="lead" id="finderLead">শ্রেণি আর রোল নম্বর দিলেই কক্ষ, বেঞ্চ ও আসন দেখাবে।</p>
+    <form id="searchForm" autocomplete="off">
+      <div class="finder-row">
+        <div class="field"><label for="srcCls">শ্রেণি</label><select id="srcCls"></select></div>
+        <div class="field"><label for="srcRoll">রোল নম্বর</label><input type="text" id="srcRoll" inputmode="numeric" placeholder="যেমন: ২৪"></div>
+        <button class="btn btn-search" type="submit">আসন খুঁজুন</button>
+      </div>
+      <details id="moreBox">
+        <summary>আরও তথ্য দিন (শাখা, শিফট, বিভাগ)</summary>
+        <div class="more-grid">
+          <div class="field"><label for="srcSec">শাখা</label><select id="srcSec"></select></div>
+          <div class="field"><label for="srcShift">শিফট</label><select id="srcShift"></select></div>
+          <div class="field"><label for="srcDept">বিভাগ</label><select id="srcDept"></select></div>
+        </div>
+        <p class="more-hint">একই রোল একাধিক শাখায় থাকলে এগুলো দিয়ে সঠিক আসনটি বেছে নিন।</p>
+      </details>
+    </form>
+    <div class="result-area" id="searchResult" aria-live="polite" hidden></div>
+  </section>
+
+  <div class="section-head" id="roomsHead" hidden>
+    <div>
+      <h2>কক্ষভিত্তিক আসনবিন্যাস</h2>
+      <p id="sessionInfo"></p>
+    </div>
+    <button class="btn btn-sm" type="button" onclick="window.print()">🖨️ প্রিন্ট</button>
+  </div>
+  <div class="tabs-light" style="margin-bottom:16px"><div class="shift-tabs" id="sessionTabs" hidden></div></div>
+
+  <div id="rooms"></div>
+</main>
+
+
+<script src="assets/config.js"></script>
+<script src="assets/common.js"></script>
+<script>
+(function () {
+  'use strict';
+  let data, plan, plans, sessionId, highlight = null;
+  const openRooms = new Set(), fullRooms = new Set();
+  let roomFilter = '', printAll = false;
+  const $ = id => document.getElementById(id);
+  const POS_TEXT = { 'বাম': 'বেঞ্চের বাম পাশে', 'ডান': 'বেঞ্চের ডান পাশে', 'মাঝ': 'বেঞ্চের মাঝখানে', 'একক': 'একক আসন' };
+
+  async function start() {
+    try {
+      data = await SP.loadPublicData();
+    } catch (e) {
+      $('planTitle').textContent = '';
+      $('rooms').innerHTML = `<div class="empty-state">আসনবিন্যাস লোড হয়নি। ইন্টারনেট সংযোগ দেখে পাতাটি আবার খুলুন।<br><small>${SP.esc(e.message)}</small></div>`;
+      return;
+    }
+    const s = data.settings;
+    $('schoolName').textContent = s.schoolName;
+    document.title = 'পরীক্ষার আসনবিন্যাস - ' + s.schoolName;
+
+    plans = data.plans.filter(p => p.published);
+    if (!plans.length) {
+      $('planTitle').textContent = '';
+      $('rooms').innerHTML = '<div class="empty-state" style="margin-top:24px">এখনো কোনো আসনবিন্যাস প্রকাশ করা হয়নি। পরীক্ষার আগে আবার দেখুন।</div>';
+      return;
+    }
+    const params = new URLSearchParams(location.search);
+    // শুরুতে: লিংকে দেওয়া পরীক্ষা → এডমিনের বেছে দেওয়া পরীক্ষা → তালিকার প্রথমটি
+    plan = plans.find(p => p.id === params.get('plan')) || plans.find(p => p.id === data.settings.defaultPlanId) || plans[0];
+    if (plans.length > 1) {
+      $('examSwitch').hidden = false;
+      $('finderLead').textContent = 'শ্রেণি আর রোল নম্বর দিলেই সব পরীক্ষা থেকে খুঁজে কক্ষ, বেঞ্চ ও আসন দেখাবে।';
+      $('examSwitch').addEventListener('click', e => {
+        const b = e.target.closest('[data-plan]');
+        if (!b || b.dataset.plan === plan.id) return;
+        plan = plans.find(p => p.id === b.dataset.plan);
+        sessionId = null; highlight = null;
+        render();
+      });
+    }
+
+    $('srcCls').innerHTML = SP.optionsHtml(SP.CLASSES, '');
+    $('srcSec').innerHTML = SP.optionsHtml(SP.SECTIONS, SP.NA, true, true);
+    $('srcShift').innerHTML = SP.optionsHtml(SP.SHIFT_OPTS, SP.NA, true, true);
+    $('srcDept').innerHTML = SP.optionsHtml(SP.DEPTS, SP.NA, true, true);
+    $('finder').hidden = false;
+    $('searchForm').onsubmit = e => { e.preventDefault(); search(true); };
+
+    $('searchResult').addEventListener('click', e => {
+      const b = e.target.closest('[data-act]');
+      if (!b) return;
+      const f = lastFound[+b.dataset.i];
+      if (b.dataset.act === 'show') showSeat(f);
+      else if (b.dataset.act === 'image') saveImage(f, b);
+      else if (b.dataset.act === 'share') share(f, b);
+      else if (b.dataset.act === 'link') copyLink(f, b);
+    });
+    $('sessionTabs').addEventListener('click', e => {
+      const b = e.target.closest('[data-session]');
+      if (b) { sessionId = b.dataset.session; render(); }
+    });
+    $('rooms').addEventListener('click', e => {
+      const tg = e.target.closest('[data-toggle]');
+      if (tg) {
+        const id = tg.dataset.toggle;
+        openRooms.has(id) ? openRooms.delete(id) : openRooms.add(id);
+        render();
+        return;
+      }
+      const all = e.target.closest('[data-openall]'), none = e.target.closest('[data-closeall]');
+      if (all || none) {
+        const se = plan.sessions.find(x => x.id === sessionId);
+        se.rooms.forEach(r => all ? openRooms.add(r.id) : openRooms.delete(r.id));
+        render();
+        return;
+      }
+      const b = e.target.closest('[data-full]');
+      if (b) { const card = b.closest('.room-card'); card.classList.add('show-full'); fullRooms.add(card.dataset.room); }
+    });
+    $('rooms').addEventListener('input', e => {
+      if (e.target.id !== 'roomFilter') return;
+      roomFilter = e.target.value;
+      SP.applyRoomFilter($('rooms'), roomFilter);
+    });
+    // প্রিন্টে সব কক্ষ খোলা অবস্থায় যায়
+    window.addEventListener('beforeprint', () => { printAll = true; render(); });
+    window.addEventListener('afterprint', () => { printAll = false; render(); });
+    render();
+
+    // শেয়ার করা লিংক থেকে খোলা হলে সরাসরি খুঁজে দেখায়
+    if (params.get('roll') && params.get('cls')) {
+      const set = (id, v) => { if (v && [...$(id).options].some(o => SP.nfc(o.value) === SP.nfc(v))) $(id).value = [...$(id).options].find(o => SP.nfc(o.value) === SP.nfc(v)).value; };
+      set('srcCls', params.get('cls'));
+      $('srcRoll').value = params.get('roll');
+      ['sec:srcSec', 'shift:srcShift', 'dept:srcDept'].forEach(pair => {
+        const [k, id] = pair.split(':');
+        if (params.get(k)) { set(id, params.get(k)); $('moreBox').open = true; }
+      });
+      search(true);
+    }
+  }
+
+  function render() {
+    $('planTitle').textContent = plans.length > 1 ? 'পরীক্ষার আসনবিন্যাস' : plan.title;
+    if (plans.length > 1) {
+      $('examSwitch').innerHTML = '<span class="exam-label">পরীক্ষা</span>' + plans.map(p =>
+        `<button type="button" class="exam-btn${p === plan ? ' active' : ''}" data-plan="${SP.esc(p.id)}" aria-pressed="${p === plan}">${SP.esc(p.title)}</button>`).join('');
+    }
+    if (!plan.sessions.find(se => se.id === sessionId)) {
+      const withRooms = plan.sessions.find(se => se.rooms.length);
+      sessionId = (withRooms || plan.sessions[0] || {}).id;
+    }
+    $('sessionTabs').innerHTML = SP.sessionTabsHtml(plan, sessionId);
+    $('sessionTabs').hidden = plan.sessions.length < 2;
+    $('roomsHead').hidden = false;
+    const se = plan.sessions.find(x => x.id === sessionId);
+    if (!se || !se.rooms.length) {
+      $('sessionInfo').textContent = '';
+      $('rooms').innerHTML = '<div class="empty-state">এই সেশনে এখনো কোনো কক্ষ যোগ করা হয়নি।</div>';
+      return;
+    }
+    $('sessionInfo').textContent = `${se.name}${se.time ? ', ' + se.time : ''}`;
+    const printHead = SP.printHead(data.settings, plan, se);
+    const colors = data.settings.classColors;
+    $('rooms').innerHTML = SP.roomListHtml(se.rooms, {
+      colors, filterValue: roomFilter,
+      isOpen: id => printAll || openRooms.has(id),
+      card: r => SP.renderRoom(r, { colors, printHead, mini: true, highlight: highlight && highlight.roomId === r.id ? highlight.key : null })
+    });
+    fullRooms.forEach(id => { const c = $('room-' + id); if (c) c.classList.add('show-full'); });
+    SP.applyRoomFilter($('rooms'), roomFilter);
+  }
+
+  let lastFound = [];
+  function query() {
+    return { cls: $('srcCls').value, sec: $('srcSec').value, shiftOpt: $('srcShift').value, dept: $('srcDept').value, roll: $('srcRoll').value };
+  }
+
+  function search(scroll) {
+    const q = query();
+    const box = $('searchResult');
+    box.hidden = false;
+    if (!q.roll.trim() || isNaN(SP.num(q.roll))) {
+      box.innerHTML = '<div class="result-msg bad">রোল নম্বর লিখুন, তারপর "আসন খুঁজুন" চাপুন।</div>';
+      $('srcRoll').focus();
+      return;
+    }
+    lastFound = [plan].concat(plans.filter(p => p !== plan))
+      .flatMap(p => SP.findSeats(p, q).map(f => Object.assign(f, { plan: p })));
+    if (!lastFound.length) {
+      box.innerHTML = `<div class="result-msg bad">${SP.esc(q.cls)} শ্রেণির রোল ${SP.bn(SP.esc(q.roll))}-এর আসন ${plans.length > 1 ? 'কোনো প্রকাশিত পরীক্ষায়' : 'এই পরীক্ষায়'} পাওয়া যায়নি।
+        <p>শ্রেণি ও রোল আবার মিলিয়ে দেখুন। শাখা বা শিফট দিয়ে থাকলে সেগুলো "প্রযোজ্য নয়" করে চেষ্টা করুন।</p></div>`;
+      return;
+    }
+    const canShare = !!(navigator.share);
+    const examCount = new Set(lastFound.map(f => f.plan)).size;
+    const sameExamDup = lastFound.length > examCount;
+    box.innerHTML = (sameExamDup
+      ? `<div class="result-msg" style="margin-bottom:14px">এই রোলে ${SP.bn(lastFound.length)}টি আসন মিলেছে। "আরও তথ্য" থেকে শাখা বা শিফট দিলে শুধু আপনারটি দেখাবে।</div>`
+      : examCount > 1 ? `<div class="result-msg" style="margin-bottom:14px">${SP.bn(examCount)}টি পরীক্ষায় আপনার আসন আছে। প্রতিটি টিকিটের ওপরে পরীক্ষার নাম লেখা।</div>` : '') +
+      lastFound.map((f, i) => `
+      <article class="ticket">
+        <div class="ticket-main">
+          <div class="ticket-exam">📝 ${SP.esc(f.plan.title)}</div>
+          <div class="ticket-who"><b>${SP.esc(SP.groupLabel(f.seat))}</b><span class="roll">রোল ${SP.bn(SP.esc(f.seat.roll))}</span></div>
+          <div class="ticket-grid">
+            <div class="ticket-cell"><span>কক্ষ</span><strong>${SP.bn(SP.esc(f.room.no))}</strong><small>${SP.esc(f.room.floor || ' ')}</small></div>
+            <div class="ticket-cell"><span>বেঞ্চ</span><strong>${SP.bn(f.bench)}</strong><small>${f.side === 'L' ? 'বাম' : 'ডান'} সারি</small></div>
+            <div class="ticket-cell key"><span>আসন</span><strong>${SP.esc(f.pos)}</strong><small>${POS_TEXT[f.pos] || ''}</small></div>
+          </div>
+          <div class="ticket-when">${SP.esc(f.session.icon || '')} <b>${SP.esc(f.session.name)}</b>${f.session.time ? `, ${SP.esc(f.session.time)}` : ''}</div>
+          <div class="ticket-actions">
+            <button class="btn btn-primary btn-sm" type="button" data-act="show" data-i="${i}">📍 চার্টে দেখুন</button>
+            <button class="btn btn-sm" type="button" data-act="image" data-i="${i}">🖼 ছবি সেভ করুন</button>
+            ${canShare ? `<button class="btn btn-sm" type="button" data-act="share" data-i="${i}">📤 শেয়ার</button>` : ''}
+            <button class="btn btn-sm" type="button" data-act="link" data-i="${i}">🔗 লিংক কপি</button>
+          </div>
+        </div>
+        <div class="ticket-stub">
+          <div class="stub-title">কক্ষ ${SP.bn(SP.esc(f.room.no))}-এ আপনার আসন</div>
+          ${SP.mapetteHtml(f.room, f.key)}
+        </div>
+      </article>`).join('');
+    if (scroll) box.scrollIntoView({ behavior: 'smooth', block: 'nearest' });
+  }
+
+  function showSeat(f) {
+    plan = f.plan;
+    sessionId = f.session.id;
+    highlight = { roomId: f.room.id, key: f.key };
+    openRooms.add(f.room.id);
+    roomFilter = '';
+    render();
+    const card = $('room-' + f.room.id);
+    const cells = card ? [...card.querySelectorAll('.seat-found, .mini-seat.found')] : [];
+    const visible = cells.find(c => c.offsetParent !== null) || card;
+    if (visible) visible.scrollIntoView({ behavior: 'smooth', block: 'center', inline: 'center' });
+  }
+
+  function seatLink(f) {
+    const u = new URL(location.href.split('?')[0].split('#')[0]);
+    if (plans.length > 1) u.searchParams.set('plan', f.plan.id);
+    u.searchParams.set('cls', f.seat.cls);
+    u.searchParams.set('roll', String(SP.num(f.seat.roll)));
+    if (f.seat.sec && f.seat.sec !== SP.NA) u.searchParams.set('sec', f.seat.sec);
+    if (f.seat.shiftOpt && f.seat.shiftOpt !== SP.NA) u.searchParams.set('shift', f.seat.shiftOpt);
+    if (f.seat.dept && f.seat.dept !== SP.NA) u.searchParams.set('dept', f.seat.dept);
+    return u.href;
+  }
+
+  async function copyLink(f) {
+    const link = seatLink(f);
+    try { await navigator.clipboard.writeText(link); SP.toast('লিংক কপি হয়েছে। যেকোনো জায়গায় পেস্ট করুন।', 'ok'); }
+    catch (e) { window.prompt('এই লিংকটি কপি করুন:', link); }
+  }
+
+  /* ---------- টিকিটের ছবি ---------- */
+  function rr(x, X, Y, W, H, R) {
+    x.beginPath();
+    if (x.roundRect) x.roundRect(X, Y, W, H, R);
+    else { x.moveTo(X + R, Y); x.arcTo(X + W, Y, X + W, Y + H, R); x.arcTo(X + W, Y + H, X, Y + H, R); x.arcTo(X, Y + H, X, Y, R); x.arcTo(X, Y, X + W, Y, R); x.closePath(); }
+  }
+  function fitText(x, text, maxW, size, weight, family) {
+    let s = size;
+    do { x.font = `${weight} ${s}px ${family}`; s -= 2; } while (x.measureText(text).width > maxW && s > 14);
+  }
+
+  async function ticketCanvas(f) {
+    try { await Promise.all(['400 30px "Kalpurush"', '700 40px "Noto Serif Bengali"'].map(q => document.fonts.load(q, 'আসন'))); } catch (e) { /* ignore */ }
+    const W = 1080, H = 1350;
+    const c = document.createElement('canvas');
+    c.width = W; c.height = H;
+    const x = c.getContext('2d');
+    const BLUE = '#102a6b', BLUE7 = '#1f45a8', GOLD = '#f4b400', PAPER = '#f6f9fd', WATER = '#eaf2fd', INK = '#14213d', MUTED = '#5b6785';
+    const HS = '"Kalpurush", "Nirmala UI", sans-serif', SERIF = '"Noto Serif Bengali", "Nirmala UI", serif';
+
+    x.fillStyle = PAPER; x.fillRect(0, 0, W, H);
+    x.fillStyle = BLUE; x.fillRect(0, 0, W, 360);
+    // ঢেউ
+    x.fillStyle = 'rgba(63,99,194,0.45)';
+    x.beginPath(); x.moveTo(0, 318); x.bezierCurveTo(240, 290, 420, 350, 620, 322); x.bezierCurveTo(800, 296, 960, 340, W, 316); x.lineTo(W, 360); x.lineTo(0, 360); x.fill();
+    x.fillStyle = PAPER;
+    x.beginPath(); x.moveTo(0, 336); x.bezierCurveTo(260, 312, 460, 362, 680, 338); x.bezierCurveTo(860, 318, 980, 350, W, 334); x.lineTo(W, 360); x.lineTo(0, 360); x.fill();
+
+    // লোগো
+    const logo = $('logo');
+    x.save(); x.beginPath(); x.arc(W / 2, 112, 80, 0, Math.PI * 2); x.fillStyle = GOLD; x.fill();
+    x.beginPath(); x.arc(W / 2, 112, 72, 0, Math.PI * 2); x.fillStyle = '#fff'; x.fill(); x.clip();
+    try { x.drawImage(logo, W / 2 - 68, 44, 136, 136); } catch (e) { /* ignore */ }
+    x.restore();
+
+    x.textAlign = 'center'; x.textBaseline = 'alphabetic';
+    x.fillStyle = '#fff'; fitText(x, data.settings.schoolName, W - 120, 44, 700, SERIF);
+    x.fillText(data.settings.schoolName, W / 2, 250);
+    x.fillStyle = '#c9d6f3'; fitText(x, f.plan.title, W - 160, 32, 500, HS);
+    x.fillText(f.plan.title, W / 2, 296);
+
+    // কার্ড
+    const CX = 60, CW = W - 120, CY = 390, CH = 880;
+    x.save(); x.shadowColor = 'rgba(16,42,107,0.12)'; x.shadowBlur = 30; x.shadowOffsetY = 8;
+    rr(x, CX, CY, CW, CH, 32); x.fillStyle = '#fff'; x.fill(); x.restore();
+    x.fillStyle = GOLD; rr(x, CX, CY, CW, 12, 6); x.fill();
+
+    x.textAlign = 'left';
+    x.fillStyle = MUTED; x.font = `500 30px ${HS}`;
+    x.fillText('পরীক্ষার্থী', CX + 48, CY + 78);
+    x.fillStyle = INK; fitText(x, SP.groupLabel(f.seat), CW - 380, 44, 700, HS);
+    x.fillText(SP.groupLabel(f.seat), CX + 48, CY + 134);
+    const rollTxt = 'রোল ' + SP.bn(f.seat.roll);
+    x.font = `700 40px ${HS}`;
+    const rw = x.measureText(rollTxt).width + 56;
+    rr(x, CX + CW - 48 - rw, CY + 84, rw, 66, 33); x.fillStyle = '#fff6d6'; x.fill(); x.lineWidth = 3; x.strokeStyle = GOLD; x.stroke();
+    x.fillStyle = BLUE; x.textAlign = 'center'; x.fillText(rollTxt, CX + CW - 48 - rw / 2, CY + 131);
+
+    // তিনটি ঘর
+    const cells = [
+      ['কক্ষ', SP.bn(f.room.no), f.room.floor || ''],
+      ['বেঞ্চ', SP.bn(f.bench), (f.side === 'L' ? 'বাম' : 'ডান') + ' সারি'],
+      ['আসন', f.pos, POS_TEXT[f.pos] || '']
+    ];
+    const gap = 20, bw = (CW - 96 - gap * 2) / 3, by = CY + 180, bh = 230;
+    cells.forEach((cl, i) => {
+      const bx = CX + 48 + i * (bw + gap);
+      rr(x, bx, by, bw, bh, 22);
+      x.fillStyle = i === 2 ? '#fff6d6' : WATER; x.fill();
+      if (i === 2) { x.lineWidth = 4; x.strokeStyle = GOLD; x.stroke(); }
+      x.textAlign = 'left';
+      x.fillStyle = MUTED; x.font = `500 30px ${HS}`; x.fillText(cl[0], bx + 26, by + 52);
+      x.fillStyle = BLUE; fitText(x, cl[1], bw - 52, 110, 700, HS); x.fillText(cl[1], bx + 26, by + 158);
+      x.fillStyle = '#33405f'; fitText(x, cl[2], bw - 52, 28, 500, HS); x.fillText(cl[2], bx + 26, by + 206);
+    });
+
+    // সময়
+    x.textAlign = 'left'; x.fillStyle = INK;
+    const when = `${f.session.name}${f.session.time ? ',  ' + f.session.time : ''}`;
+    fitText(x, when, CW - 96, 34, 600, HS); x.fillText(when, CX + 48, by + bh + 62);
+
+    // কক্ষের নকশা
+    const room = f.room, n = Math.max(room.left, room.right);
+    const mapTop = by + bh + 112, mapBottom = CY + CH - 30;
+    x.fillStyle = MUTED; x.font = `500 26px ${HS}`; x.textAlign = 'center';
+    x.fillText(`কক্ষ ${SP.bn(room.no)}-এ আপনার আসন`, W / 2, mapTop);
+    const avail = mapBottom - (mapTop + 24);
+    const cg = 5, ch = Math.max(8, Math.min(30, Math.floor(avail / n) - cg));
+    const cw = Math.min(54, Math.round(ch * 1.7)), aisle = 70, numW = 50;
+    const sideW = room.cap * cw + (room.cap - 1) * 4;
+    const totalW = numW + sideW + (room.right ? aisle + sideW + numW : 0);
+    let sx = W / 2 - totalW / 2;
+    const hit = SP.parseKey(f.key);
+    const drawSide = (sd, count, x0, numLeft) => {
+      for (let b = 1; b <= count; b++) {
+        const y = mapTop + 24 + (b - 1) * (ch + cg);
+        const isRow = hit.side === sd && hit.bench === b;
+        x.fillStyle = isRow ? '#b07d00' : '#9fb2de'; x.font = `${isRow ? 700 : 500} ${Math.max(14, ch - 4)}px ${HS}`;
+        x.textAlign = numLeft ? 'right' : 'left';
+        x.fillText(SP.bn(SP.chartBench(room, sd, b)), numLeft ? x0 - 10 : x0 + sideW + 10, y + ch - 3);
+        for (let cc = 1; cc <= room.cap; cc++) {
+          const on = isRow && hit.c === cc;
+          rr(x, x0 + (cc - 1) * (cw + 4), y, cw, ch, 4);
+          x.fillStyle = on ? GOLD : '#dbe7fb'; x.fill();
+          if (on) { x.lineWidth = 3; x.strokeStyle = BLUE; x.stroke(); }
+        }
+      }
+    };
+    if (room.left) drawSide('L', room.left, sx + numW, true);
+    if (room.right) {
+      const ax = sx + numW + sideW + aisle / 2;
+      x.strokeStyle = '#b6c3dc'; x.lineWidth = 2; x.setLineDash([8, 8]);
+      x.beginPath(); x.moveTo(ax, mapTop + 20); x.lineTo(ax, mapTop + 24 + n * (ch + cg)); x.stroke(); x.setLineDash([]);
+      drawSide('R', room.right, sx + numW + sideW + aisle, false);
+    }
+
+    x.fillStyle = MUTED; x.font = `500 24px ${HS}`; x.textAlign = 'center';
+    x.fillText(location.host + location.pathname.replace(/index\.html$/, ''), W / 2, H - 30);
+    return c;
+  }
+
+  async function makeFile(f) {
+    const c = await ticketCanvas(f);
+    const blob = await new Promise(r => c.toBlob(r, 'image/png'));
+    const clsNo = SP.num(f.seat.cls);
+    const name = `exam-seat-class-${isNaN(clsNo) ? 'x' : clsNo}-roll-${SP.num(f.seat.roll)}.png`;
+    return new File([blob], name, { type: 'image/png' });
+  }
+
+  async function saveImage(f, btn) {
+    btn.disabled = true;
+    try {
+      const file = await makeFile(f);
+      const url = URL.createObjectURL(file);
+      const a = document.createElement('a');
+      a.href = url; a.download = file.name;
+      document.body.appendChild(a); a.click(); a.remove();
+      setTimeout(() => URL.revokeObjectURL(url), 3000);
+      SP.toast('ছবি সেভ হয়েছে।', 'ok');
+    } catch (e) { SP.toast('ছবি তৈরি করা যায়নি।', 'bad'); }
+    finally { btn.disabled = false; }
+  }
+
+  async function share(f, btn) {
+    btn.disabled = true;
+    try {
+      const file = await makeFile(f);
+      const text = `${data.settings.schoolName} — ${f.plan.title}\n${SP.groupLabel(f.seat)}, রোল ${SP.bn(f.seat.roll)}: কক্ষ ${SP.bn(f.room.no)}, বেঞ্চ ${SP.bn(f.bench)}, ${f.pos} আসন`;
+      if (navigator.canShare && navigator.canShare({ files: [file] })) await navigator.share({ files: [file], title: 'পরীক্ষার আসন', text });
+      else await navigator.share({ title: 'পরীক্ষার আসন', text, url: seatLink(f) });
+    } catch (e) { if (e && e.name !== 'AbortError') SP.toast('শেয়ার করা যায়নি। "লিংক কপি" ব্যবহার করুন।', 'bad'); }
+    finally { btn.disabled = false; }
+  }
+
+  start();
+})();
+</script>
+</body>
+</html>
