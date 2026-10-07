@@ -27,8 +27,8 @@
   {
    "id": "pmuynnu2ka9mh",
    "title": "Test",
-   "published": true,
-   "updatedAt": "2026-10-07T22:35:48.714Z",
+   "published": false,
+   "updatedAt": "2026-10-07T22:39:53.906Z",
    "sessions": [
     {
      "id": "smuynnu2kmw2m",
@@ -331,30 +331,6 @@
     },
     {
      "id": "smuynnu2kng5k",
-     "name": "বিকালের পরীক্ষা",
-     "icon": "🌙",
-     "time": "",
-     "classes": "",
-     "rooms": []
-    }
-   ]
-  },
-  {
-   "id": "pmuyn233ytmx3",
-   "title": "নতুন পরীক্ষা",
-   "published": true,
-   "updatedAt": "2026-10-07T21:49:34.300Z",
-   "sessions": [
-    {
-     "id": "smuyn233yqmme",
-     "name": "সকালের পরীক্ষা",
-     "icon": "☀",
-     "time": "",
-     "classes": "",
-     "rooms": []
-    },
-    {
-     "id": "smuyn233y33oa",
      "name": "বিকালের পরীক্ষা",
      "icon": "🌙",
      "time": "",
