@@ -13,11 +13,11 @@
   {
    "user": "admin",
    "name": "",
-   "salt": "B+KNcz/IQLZGGbTJt1+XfA==",
+   "salt": "1GjkG8pM6iSQ4yqQwdfTVg==",
    "iter": 600000,
-   "iv": "az/0gWN2K5qjQww8",
-   "ct": "yt383jfeRLkSUtMAfVqiGqeel3z87+MhuAjgscjwjaipApZ6F9HuG2oB0suXvkaf",
-   "updated": "2026-10-07T21:35:58.393Z"
+   "iv": "wo9cPZZSf64bm2cT",
+   "ct": "2LyZnM5u+y/JI5e5aJxBZLm+jgsUruQoOvv0L3d4eg/FGLEWUbxiVEmGOaS1ACNg",
+   "updated": "2026-10-08T09:59:07.396Z"
   }
  ]
 }
