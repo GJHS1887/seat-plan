@@ -17,6 +17,10 @@
 /* "আরও তথ্য দিন" অংশ সবসময় খোলা থাকে */
 #moreBox > summary { pointer-events: none; cursor: default; list-style: none; }
 #moreBox > summary::-webkit-details-marker { display: none; }
+/* শ্রেণি ও রোল পাশাপাশি, "আসন খুঁজুন" বোতাম সবার নিচে */
+#searchForm .finder-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 12px; }
+#searchForm .btn-search-bottom { display: block; width: 100%; margin-top: 18px; }
+@media (max-width: 380px) { #searchForm .finder-row { grid-template-columns: 1fr; } }
 </style>
 </head>
 <body>
@@ -48,7 +52,6 @@
       <div class="finder-row">
         <div class="field"><label for="srcCls">শ্রেণি</label><select id="srcCls"></select></div>
         <div class="field"><label for="srcRoll">রোল নম্বর</label><input type="text" id="srcRoll" inputmode="numeric" placeholder="যেমন: ২৪"></div>
-        <button class="btn btn-search" type="submit">আসন খুঁজুন</button>
       </div>
       <details id="moreBox" open>
         <summary>আরও তথ্য দিন (শাখা, শিফট, বিভাগ)</summary>
@@ -59,6 +62,7 @@
         </div>
         <p class="more-hint">একই রোল একাধিক শাখায় থাকলে এগুলো দিয়ে সঠিক আসনটি বেছে নিন।</p>
       </details>
+      <button class="btn btn-search btn-search-bottom" type="submit">আসন খুঁজুন</button>
     </form>
     <div class="result-area" id="searchResult" aria-live="polite" hidden></div>
   </section>
