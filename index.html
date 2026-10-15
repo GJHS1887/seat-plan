@@ -13,6 +13,11 @@
 <link rel="icon" type="image/png" href="assets/favicon.png">
 <link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
 <link rel="stylesheet" href="assets/style.css">
+<style>
+/* "আরও তথ্য দিন" অংশ সবসময় খোলা থাকে */
+#moreBox > summary { pointer-events: none; cursor: default; list-style: none; }
+#moreBox > summary::-webkit-details-marker { display: none; }
+</style>
 </head>
 <body>
 
@@ -45,7 +50,7 @@
         <div class="field"><label for="srcRoll">রোল নম্বর</label><input type="text" id="srcRoll" inputmode="numeric" placeholder="যেমন: ২৪"></div>
         <button class="btn btn-search" type="submit">আসন খুঁজুন</button>
       </div>
-      <details id="moreBox">
+      <details id="moreBox" open>
         <summary>আরও তথ্য দিন (শাখা, শিফট, বিভাগ)</summary>
         <div class="more-grid">
           <div class="field"><label for="srcSec">শাখা</label><select id="srcSec"></select></div>
@@ -121,6 +126,8 @@
     $('srcDept').innerHTML = SP.optionsHtml(SP.DEPTS, SP.NA, true, true);
     $('finder').hidden = false;
     $('searchForm').onsubmit = e => { e.preventDefault(); search(true); };
+    // কীবোর্ড দিয়েও বন্ধ করা যাবে না
+    $('moreBox').addEventListener('toggle', () => { $('moreBox').open = true; });
 
     $('searchResult').addEventListener('click', e => {
       const b = e.target.closest('[data-act]');
