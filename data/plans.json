@@ -1394,7 +1394,7 @@
    "id": "pmuynnu2ka9mh",
    "title": "বার্ষিক পরীক্ষা - ২০২৬",
    "published": false,
-   "updatedAt": "2026-10-21T15:27:38.650Z",
+   "updatedAt": "2026-10-21T15:34:01.224Z",
    "sessions": [
     {
      "id": "smuynnu2kmw2m",
@@ -3543,7 +3543,7 @@
          "sec": "খ",
          "shiftOpt": "দিবা",
          "dept": "বিজ্ঞান",
-         "roll": 13
+         "roll": 4
         },
         "bR-2-s2": {
          "cls": "৯ম",
@@ -3564,14 +3564,14 @@
          "sec": "খ",
          "shiftOpt": "দিবা",
          "dept": "বিজ্ঞান",
-         "roll": 9
+         "roll": 13
         },
         "bR-5-s2": {
          "cls": "৯ম",
          "sec": "খ",
          "shiftOpt": "দিবা",
          "dept": "বিজ্ঞান",
-         "roll": 4
+         "roll": 9
         },
         "bR-6-s2": {
          "cls": "৯ম",
