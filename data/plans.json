@@ -1394,7 +1394,7 @@
    "id": "pmuynnu2ka9mh",
    "title": "বার্ষিক পরীক্ষা - ২০২৬",
    "published": false,
-   "updatedAt": "2026-10-21T15:46:27.696Z",
+   "updatedAt": "2026-10-21T15:47:18.928Z",
    "sessions": [
     {
      "id": "smuynnu2kmw2m",
@@ -5976,7 +5976,7 @@
          "sec": "ক",
          "shiftOpt": "দিবা",
          "dept": "প্রযোজ্য নয়",
-         "roll": 9
+         "roll": 14
         },
         "bL-3-s2": {
          "cls": "৮ম",
@@ -6032,7 +6032,7 @@
          "sec": "ক",
          "shiftOpt": "দিবা",
          "dept": "প্রযোজ্য নয়",
-         "roll": 14
+         "roll": 9
         },
         "bR-2-s1": {
          "cls": "৮ম",
